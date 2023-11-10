@@ -17,8 +17,8 @@ with st.sidebar:
 
 # Connect to databases (MongoDB, MySQL)
 # MongoDB
-vinoth = py.MongoClient("mongodb+srv://preethajayaseelan:!Charupree1329@cluster0.0oaukvs.mongodb.net/?retryWrites=true&w=majority")
-db = vinoth["youtube_channel_data"]
+Pree = py.MongoClient("mongodb+srv://preethajayaseelan:!Charupree1329@cluster0.0oaukvs.mongodb.net/?retryWrites=true&w=majority")
+db = Pree["youtube_channel_data"]
 
 # MySQL
 mydb = sql.connect(host="localhost",
@@ -342,9 +342,9 @@ if selected == "View":
 # Set the home page and options
 if selected == "Home":
     cl1, cl2 = st.columns(2, gap="large")
-    cl1.image("https://cdn.freebiesupply.com/logos/large/2x/youtube-2-logo-png-transparent.png")
-    cl1.markdown("## :blue[Domain] : Social Media ('Youtube')")
-    cl1.markdown("## :blue[Technologies used] : Python scripting, Youtube Data retrieval using API, Streamlit")
+    cl1.image("https://img.freepik.com/free-photo/pile-3d-play-button-logos_1379-880.jpg?w=900&t=st=1699595837~exp=1699596437~hmac=d59371d980c49659757b8acc3d9e254f270c01296155364985c5a365d10e6de9")
+    cl1.markdown("## :blue[Domain] : Youtube")
+    cl1.markdown("## :blue[Technologies used] : Python scripting, Youtube Data retrieval using API, Streamlit, VS code")
     cl1.markdown("## :blue[Overview] : Retrieving the YouTube channel data from the Google API, storing it in MongoDB as a data lake, migrating and transforming data into a SQL database, then querying the data and displaying it in the Streamlit app.")
     
     cl2.markdown("## :blue[Name] : Preetha")
