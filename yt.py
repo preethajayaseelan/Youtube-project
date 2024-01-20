@@ -6,19 +6,22 @@ import plotly.express as px
 import mysql.connector as sql
 from googleapiclient.discovery import build
 from datetime import datetime
+import matplotlib.pyplot as plt
+import seaborn as sns
+from io import BytesIO
 
 
  # Set page configuration and title
 st.set_page_config(page_title="YouTube Data Harvesting and Warehousing", layout="wide")
  # Set option menu
 with st.sidebar:
-    selected = option_menu("Main Menu", ["Home", "Explore", "View"],
+    selected = option_menu("Main Menu", ["Home", "Explore", "over view"],
                            icons=['house', "tools", 'card-text'], menu_icon="cast", default_index=1)
 
 # Connect to databases (MongoDB, MySQL)
 # MongoDB
 Pree = py.MongoClient("mongodb+srv://preethajayaseelan:!Charupree1329@cluster0.0oaukvs.mongodb.net/?retryWrites=true&w=majority")
-db = Pree["youtube_channel_data"]
+db = Pree["youtube"]
 
 # MySQL
 mydb = sql.connect(host="localhost",
@@ -38,7 +41,7 @@ youtube = build("youtube", "v3", developerKey=api_key)
 def channel_details(channel_id):
     channel_data = []
     request = youtube.channels().list(
-        part="snippet,contentDetails,statistics",
+        part="snippet,contentDe tails,statistics",
         id=channel_id)
     response = request.execute()
 
@@ -118,7 +121,7 @@ def get_video_details(video_ids):
 # Function to get channel name in MongoDB
 def get_channel_name():
     channel_names = []
-    for doc in db.channel_details.find():
+    for doc in db.channel_data.find():
         channel_names.append({"channel_name": doc["channel_name"]})
     return channel_names
 
@@ -129,38 +132,38 @@ if selected == "Explore":
     tab1,tab2 = st.tabs(["EXTRACT ", "TRANSFORM "])
 
     with tab1:
-        st.write("Enter your channel_id below")
+        st.write("Enter your channel_id ")
         channel_id = st.text_input("Enter")
 
-        if channel_id and st.button("Extract"):
+        if channel_id and st.button("Explor channel details"):
             channel_data = channel_details(channel_id)
             df = pd.DataFrame(channel_data)
             st.table(df)
 
-        if st.button("Upload to MongoDB"):
-            st.spinner(text="In progress...")
+        if st.button("Upload to DataBase"):
+            st.spinner(text="Please wait...")
             channel_list = channel_details(channel_id)
             video_ids = get_video_ids(channel_id)
             videos_data = get_video_details(video_ids)
             
-            cll1 = db["channel_details"]
+            cll1 = db["channel_data"]
             cll1.insert_many(channel_list)
 
             cll2 = db["video_data"]
             cll2.insert_many(videos_data)
 
-            st.write("Successfully uploaded to MongoDB")
-            st.write("Our cloud storage system is MongoDB Atlas")
+            st.write("Successfully uploaded ")
+            
 
     # TRANSFORM TAB
     with tab2:    
-        st.markdown("# Transformation")
+        st.markdown("# Transfer to SQL")
         st.markdown("Select a channel to begin the transformation to SQL")
         ch_names = get_channel_name()
-        user_inp = st.selectbox("Select channel", options=ch_names)
+        user_inp = st.selectbox("Select channel Name", options=ch_names)
 
     def insert_into_channels():
-        coll_channel=db.channel_details
+        coll_channel=db.channel_data
         query = "INSERT INTO channel_data (channel_id, channel_name, channel_description, subscribers, channel_views, channel_total_videos, playlist_id, channel_country) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
         for channel in coll_channel.find(user_inp):
             values = (channel["channel_id"],
@@ -208,15 +211,15 @@ if selected == "Explore":
 # Commit changes and close connections
             mydb.commit()
 
-    if st.button("Submit"):
+    if st.button("Done"):
         insert_into_channels()
         insert_into_videos()
-        st.success("Transformation to MySQL Successful!")
+        st.success("Succesfully data transferd")
 
 
 
 # VIEW PAGE
-if selected == "View":
+if selected == "over view":
     
     st.write("## :orange[Select any question to get Insights]")
     questions = st.selectbox('Questions',
@@ -237,11 +240,18 @@ if selected == "View":
                             ORDER BY channel_name""")
         df = pd.DataFrame(cursor.fetchall(),columns=cursor.column_names)
         st.write(df)
+
+
+         # Plot using Plotly Express
+        fig = px.bar(df, x='Channel_Name', y='Video_name', title='Videos and Their Channels')
+        st.plotly_chart(fig)
+
+        
         
     elif questions == '2. Which channels have the most number of videos, and how many videos do they have?':
-        cursor.execute("""SELECT channel_name AS Channel_Name, channel_total_videos AS Total_Videos
+        cursor.execute("""SELECT channel_name AS channel_Name, channel_total_videos AS Total_Videos
                             FROM channel_data
-                            ORDER BY total_videos DESC""")
+                            ORDER BY Total_videos DESC""")
         df = pd.DataFrame(cursor.fetchall(),columns=cursor.column_names)
         st.write(df)
         st.write("### :blue[Number of videos in each channel :]")
@@ -274,6 +284,30 @@ if selected == "View":
         cursor.execute("""SELECT channel_name, video_id, title, comments FROM video_data ORDER BY comments DESC LIMIT 10;""")
         df = pd.DataFrame(cursor.fetchall(),columns=cursor.column_names)
         st.write(df)
+
+
+        # Plot with Plotly Express
+        fig = px.bar(df, x='title', y='comments', text='comments', title='Top 10 Videos by Comments')
+        fig.update_traces(texttemplate='%{text:.2s}', textposition='outside')
+        fig.update_layout(xaxis_title='Video Title', yaxis_title='Number of Comments')
+
+        # Save the Plotly figure to a BytesIO object
+        plotly_image = BytesIO()        
+        fig.write_image(plotly_image)
+
+        # Display the Plotly figure
+        st.image(plotly_image, use_container_width=True)
+
+        # Plot with Seaborn
+        plt.figure(figsize=(12, 6))
+        sns.barplot(data=df, x='title', y='comments')
+        plt.xticks(rotation=45, ha='right')
+        plt.title('Top 10 Videos by Comments')
+        plt.xlabel('Video Title')
+        plt.ylabel('Number of Comments')
+
+        # Display the Seaborn plot
+        st.pyplot()
           
     elif questions == '5. Which videos have the highest number of likes, and what are their corresponding channel names?':
         cursor.execute("""SELECT channel_name AS Channel_Name,title AS Title,likes AS likes FROM video_data ORDER BY likes DESC LIMIT 10;""")
